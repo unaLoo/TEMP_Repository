@@ -7,10 +7,16 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "@types/offscreencanvas": "^2019.7.0",
+    "axios": "^1.4.0",
+    "dat.gui": "^0.7.9",
+    "mapbox-gl": "^2.15.0",
     "vue": "^3.2.13",
     "vue-class-component": "^8.0.0-0"
   },
   "devDependencies": {
+    "@types/dat.gui": "^0.7.10",
+    "@types/mapbox-gl": "^2.7.13",
     "@vue/cli-plugin-typescript": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
     "typescript": "~4.5.5"

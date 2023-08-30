@@ -14,8 +14,11 @@
     "useDefineForClassFields": true,
     "sourceMap": true,
     "baseUrl": ".",
+    
     "types": [
-      "webpack-env"
+      "webpack-env", 
+      // "jasmine", 
+      "offscreencanvas"
     ],
     "paths": {
       "@/*": [
@@ -38,5 +41,8 @@
   ],
   "exclude": [
     "node_modules"
-  ]
+  ],
+
+  
+  
 }
