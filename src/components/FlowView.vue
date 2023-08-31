@@ -22,5 +22,8 @@ export default {
 </script>
 
 <style>
-
+#mapContainer{
+    width: 100%;
+    height: 100%;
+}
 </style>
