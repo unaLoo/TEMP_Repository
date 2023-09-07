@@ -10,13 +10,15 @@ export class ParticleSystem {
     particleMapBuffer: Float32Array;
     parser: any;   
     maxBlockSize:number = 0;
+    maxSegmentNum:number = 0;
+    maxStreamlineNum:number = 0;
     texManager:any;
     phaseCount: any;
     timeLast: number =0;
     textureArraySize: number=0;
     flowFieldTextureArr:Array<any> = [null,null,null];
     seedingTextureArr:Array<any> = [null,null,null];
-    
+     
 
     constructor() {
         this.updateShader = null;

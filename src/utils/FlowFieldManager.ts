@@ -45,6 +45,7 @@ export class FlowFieldManager {
         this.map.on('load',()=>{
             const layer = new notSimpleLayer(this);
             this.map.addLayer(layer);
+
         })
     }
 }

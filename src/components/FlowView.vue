@@ -15,7 +15,6 @@ export default {
             const ffm =  new FlowFieldManager();
             await ffm.CoreOperation();
             
-            
         })
     }
 }
@@ -23,7 +22,7 @@ export default {
 
 <style>
 #mapContainer{
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
 }
 </style>
