@@ -280,10 +280,10 @@ export class notSimpleLayer implements CustomLayerInterface {
         await this.FillTextureByImage(gl,trans_tex,gl.RG,gl.LINEAR,this.parser.projectionTexSize[0],this.parser.projectionTexSize[1],this.parser.projection2DResource,'Float');
         this.transformTexture = trans_tex;
 
-        this.particleMapBufferData = new Float32Array(this.parser.maxBlockSize*this.parser.maxBlockSize*3).fill(0);
+        this.particleMapBufferData = new Float32Array(this.parser.maxBlockSize*this.parser.maxBlockSize*3).fill(0);//one block`s data 
         
         //vec3 (x,y,attribute)   in paper
-        for (let i = 0; i < this.parser.maxTrajectoryNum; i++) {
+        for (let i = 0; i < this.parser.maxTrajectoryNum; i++) {    //maxTrajectoryNum should be equal with blocksize*blocksize
             this.particleMapBufferData[i * 3 + 0] = rand(0, 1.0);
             this.particleMapBufferData[i * 3 + 1] = rand(0, 1.0);
             this.particleMapBufferData[i * 3 + 2] = 0.0;
