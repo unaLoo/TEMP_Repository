@@ -399,7 +399,7 @@ export class notSimpleLayer implements CustomLayerInterface {
         this.particleMapBufferData = new Float32Array(this.parser.maxBlockSize * this.parser.maxBlockSize * 3).fill(0);
         this.BO = gl.createBuffer()!;
         gl.bindBuffer(gl.ARRAY_BUFFER,this.BO);
-        gl.bufferData(gl.ARRAY_BUFFER,48,gl.DYNAMIC_DRAW);//size === 48bytes-- uniformblock里有12个float
+        gl.bufferData(gl.ARRAY_BUFFER,48,gl.DYNAMIC_DRAW);//size === 48bytes -- uniformblock里有12个float
         gl.bindBuffer(gl.ARRAY_BUFFER,null);
 
         //init the trajectory pool
@@ -433,11 +433,6 @@ export class notSimpleLayer implements CustomLayerInterface {
             '/shaders/trajectory.noCulling.vert',
             '/shaders/trajectory.noCulling.frag',
         )
-        // this.pointShaderObj = await this.init2ShadersFromSrc(
-        //     gl,
-        //     '/shaders/point.noCulling.vert',
-        //     '/shaders/point.noCulling.frag',
-        // )
         this.poolShaderObj = await this.init2ShadersFromSrc(
             gl,
             '/shaders/showPool.vert',
@@ -549,7 +544,6 @@ export class notSimpleLayer implements CustomLayerInterface {
 
         console.log('all block is updated ， start rendering');
         
-
         //## render
         gl.bindVertexArray(this.now_rVAO);
         gl.activeTexture(gl.TEXTURE0);
@@ -593,6 +587,17 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.disable(gl.BLEND);
         gl.bindVertexArray(null);
         gl.bindTexture(gl.TEXTURE_2D,null);
+
+
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.useProgram(this.poolShaderObj.program);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D,this.trajectoryPool);
+        location = gl.getUniformLocation(this.poolShaderObj.program,'viewport');
+        gl.uniform2f(location,gl.canvas.width,gl.canvas.height);
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,1);
+        gl.disable(gl.BLEND);
     }
 
 
@@ -615,6 +620,8 @@ export class notSimpleLayer implements CustomLayerInterface {
         
         this.tickfunc(gl,matrix);
         this.map?.triggerRepaint();
+
+        
             
     }
 }
