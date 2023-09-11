@@ -283,7 +283,8 @@ export class notSimpleLayer implements CustomLayerInterface {
         this.particleMapBufferData = new Float32Array(this.parser.maxBlockSize*this.parser.maxBlockSize*3).fill(0);//one block`s data 
         
         //vec3 (x,y,attribute)   in paper
-        for (let i = 0; i < this.parser.maxTrajectoryNum; i++) {    //maxTrajectoryNum should be equal with blocksize*blocksize
+        for (let i = 0; i < this.parser.maxTrajectoryNum; i++) {   
+            //maxTrajectoryNum is equal to blocksize*blocksize
             this.particleMapBufferData[i * 3 + 0] = rand(0, 1.0);
             this.particleMapBufferData[i * 3 + 1] = rand(0, 1.0);
             this.particleMapBufferData[i * 3 + 2] = 0.0;
@@ -292,11 +293,13 @@ export class notSimpleLayer implements CustomLayerInterface {
         //age in paper
         const particleCountdownData = new Float32Array(this.parser.maxTrajectoryNum);
         for (let i = 0; i < this.parser.maxTrajectoryNum; i++) {
+             //maxTrajectoryNum is equal to blocksize*blocksize
             particleCountdownData[i] = this.parser.maxSegmentNum*9.0;
-            //why 9.0?
+            //why 9.0?    9frame per block?
         }
 
         //buffer for simulation
+        //simulationBuffer & xfsimulationbuffer store the vec3 data  in oneblock
         this.simulationBuffer = gl.createBuffer()!;
         gl.bindBuffer(gl.ARRAY_BUFFER,this.simulationBuffer);
         gl.bufferData(gl.ARRAY_BUFFER,this.particleMapBufferData,gl.DYNAMIC_DRAW);
@@ -305,6 +308,7 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.bindBuffer(gl.ARRAY_BUFFER,this.xfSimulationBuffer);
         gl.bufferData(gl.ARRAY_BUFFER,this.particleMapBufferData,gl.DYNAMIC_DRAW);
         gl.bindBuffer(gl.ARRAY_BUFFER,null);
+        //lifebuffer & xflifebuffer store the age data in oneblock
         this.lifeBuffer = gl.createBuffer()!;
         gl.bindBuffer(gl.ARRAY_BUFFER,this.lifeBuffer);
         gl.bufferData(gl.ARRAY_BUFFER,particleCountdownData,gl.DYNAMIC_DRAW);
@@ -313,6 +317,8 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.bindBuffer(gl.ARRAY_BUFFER,this.xfLifeBuffer);
         gl.bufferData(gl.ARRAY_BUFFER,particleCountdownData,gl.DYNAMIC_DRAW);
         gl.bindBuffer(gl.ARRAY_BUFFER,null);
+
+        //question,  i did not use the lifebuffer and xflifebuffer finally?
 
     
         //vertex Array object
@@ -359,7 +365,7 @@ export class notSimpleLayer implements CustomLayerInterface {
         //transform feedback object-->  XFO or TFO 
         this.XFO = gl.createTransformFeedback()!;
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK,this.XFO);
-        gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER,this.xfSimulationBuffer);
+        gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER,this.xfSimulationBuffer); //use array_buffer as transform_feedback_buffer
         gl.bindBufferRange(gl.TRANSFORM_FEEDBACK_BUFFER,0,this.xfSimulationBuffer,0,this.parser.maxBlockSize*this.parser.maxBlockSize*4*3);//vec3
         gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER,this.xfLifeBuffer);
         gl.bindBufferRange(gl.TRANSFORM_FEEDBACK_BUFFER,1,this.xfLifeBuffer,0,this.parser.maxBlockSize*this.parser.maxBlockSize*4);//age
@@ -427,11 +433,11 @@ export class notSimpleLayer implements CustomLayerInterface {
             '/shaders/trajectory.noCulling.vert',
             '/shaders/trajectory.noCulling.frag',
         )
-        this.pointShaderObj = await this.init2ShadersFromSrc(
-            gl,
-            '/shaders/point.noCulling.vert',
-            '/shaders/point.noCulling.frag',
-        )
+        // this.pointShaderObj = await this.init2ShadersFromSrc(
+        //     gl,
+        //     '/shaders/point.noCulling.vert',
+        //     '/shaders/point.noCulling.frag',
+        // )
         this.poolShaderObj = await this.init2ShadersFromSrc(
             gl,
             '/shaders/showPool.vert',
@@ -478,7 +484,7 @@ export class notSimpleLayer implements CustomLayerInterface {
 
         //## simulation
 
-        gl.bindBuffer(gl.UNIFORM_BUFFER,this.BO);
+        gl.bindBuffer(gl.UNIFORM_BUFFER,this.BO);//array_buffer as uniform_buffer
         gl.bufferData(gl.UNIFORM_BUFFER,this.uboMapBufferData,gl.DYNAMIC_DRAW);
         let bindingPoint = 0;
         gl.bindBufferRange(gl.UNIFORM_BUFFER,bindingPoint,this.BO,0,48);
@@ -490,9 +496,9 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.bindTexture(gl.TEXTURE_2D,this.now_FFTextureArr[0]);
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D,this.now_FFTextureArr[1]);
-        gl.activeTexture(gl.TEXTURE3);
+        gl.activeTexture(gl.TEXTURE2);
         gl.bindTexture(gl.TEXTURE_2D,this.now_SeedTextureArr[0]);
-        gl.activeTexture(gl.TEXTURE4);
+        gl.activeTexture(gl.TEXTURE3);
         gl.bindTexture(gl.TEXTURE_2D,this.now_SeedTextureArr[1]);
 
         //-----updateShader start work
@@ -506,7 +512,7 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.uniform1f(location,Math.random());
         let blockIndex:number = 0;
         blockIndex = gl.getUniformBlockIndex(this.updateShaderObj.program,'FlowFieldUniforms');
-        gl.uniformBlockBinding(this.updateShaderObj.program,blockIndex,bindingPoint);
+        gl.uniformBlockBinding(this.updateShaderObj.program,blockIndex,bindingPoint);//bind uniformblock to the specific bindingpoint
 
         gl.enable(gl.RASTERIZER_DISCARD);
         gl.beginTransformFeedback(gl.POINTS);
@@ -522,6 +528,7 @@ export class notSimpleLayer implements CustomLayerInterface {
 
         // texSubImage2D  can  read from  unpack_BUFFER  no need to be parameter
         gl.bindTexture(gl.TEXTURE_2D,this.trajectoryPool);
+        //just the begin block
         gl.texSubImage2D(gl.TEXTURE_2D,0,
             this.textureOffsetArray[this.beginBlock].offsetX,
             this.textureOffsetArray[this.beginBlock].offsetY,
