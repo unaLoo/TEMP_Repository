@@ -2,7 +2,7 @@ import {CustomLayerInterface} from 'mapbox-gl'
 import {FlowFieldManager} from './FlowFieldManager';
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css';
-import axios, { Axios } from 'axios'
+import axios from 'axios'
 import {rand} from '@/utils/common'
 
 export class notSimpleLayer implements CustomLayerInterface {
@@ -76,18 +76,18 @@ export class notSimpleLayer implements CustomLayerInterface {
         //phase is the progressRate * phaseCount   === textureSrc index 
         //new phase ---> checkout new texture
 
-        const lastPhase = Math.floor(this._progressRate * this.phaseCount);//value would be (timecount+1)/timeLast
+        const lastPhase = Math.floor(this._progressRate * this.phaseCount)% this.phaseCount;//value would be (timecount+1)/timeLast
         const currentPhase =  Math.floor(value * this.phaseCount) % this.phaseCount;
-        const nextPhase = (currentPhase + 2) % this.phaseCount; // +2 ？
+        const nextPhase = (currentPhase + 1) % this.phaseCount; 
+
 
         this._progressRate = value;
         
-        const newCurrentPhase = Math.floor(value * this.phaseCount);
-        const newNextPhase = (newCurrentPhase+1) % this.phaseCount;
-        this.now_FFTextureArr[0] = this.flowFieldTextureArr[newCurrentPhase%this.textureArraySize],
-        this.now_FFTextureArr[1] = this.flowFieldTextureArr[newNextPhase%this.textureArraySize];
-        this.now_SeedTextureArr[0] = this.seedingTextureArr[newCurrentPhase%this.textureArraySize],
-        this.now_SeedTextureArr[1] = this.seedingTextureArr[newNextPhase%this.textureArraySize];
+
+        this.now_FFTextureArr[0] = this.flowFieldTextureArr[currentPhase%this.textureArraySize],
+        this.now_FFTextureArr[1] = this.flowFieldTextureArr[nextPhase%this.textureArraySize];
+        this.now_SeedTextureArr[0] = this.seedingTextureArr[currentPhase%this.textureArraySize],
+        this.now_SeedTextureArr[1] = this.seedingTextureArr[nextPhase%this.textureArraySize];
 
         // console.log('flowfieldTextureArray:',newCurrentPhase%this.textureArraySize, newNextPhase%this.textureArraySize);
         // console.log('seedingTextureArray:',newCurrentPhase%this.textureArraySize,newNextPhase%this.textureArraySize);
@@ -174,16 +174,15 @@ export class notSimpleLayer implements CustomLayerInterface {
             const worker = new Worker(new URL('./readPixel.worker', import.meta.url));
             worker.postMessage([0,imgSrc]);
             worker.onmessage = (e)=>{
+
                 gl.bindTexture(gl.TEXTURE_2D,Tex);
                 gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,format,gl.FLOAT,new Float32Array(e.data));
-
                 
                 //no generateMipmap 
                 gl.bindTexture(gl.TEXTURE_2D,null);
                 gl.finish();
                 worker.postMessage([1]);
                 worker.terminate();
-                this.isReparsed = true;
                 // console.log('reparsing完毕');
                 
             }
@@ -284,7 +283,6 @@ export class notSimpleLayer implements CustomLayerInterface {
             await this.FillTextureByImage(gl,seed_tex,gl.RGBA,gl.NEAREST,
                 this.parser.seedingTexSize[0],this.parser.seedingTexSize[1],
                 this.parser.seedingResourceArr[i],'UNSIGNED_BYTE');
-
 
             this.seedingTextureArr[i]=seed_tex;
             //能成功await到fill by image吗？ 并不能
@@ -416,7 +414,7 @@ export class notSimpleLayer implements CustomLayerInterface {
             this.textureOffsetArray.push(offsetItem);
         }
 
-        this.particleMapBufferData = new Float32Array(this.parser.maxBlockSize * this.parser.maxBlockSize * 3).fill(0);
+        // this.particleMapBufferData = new Float32Array(this.parser.maxBlockSize * this.parser.maxBlockSize * 3).fill(0);
         this.BO = gl.createBuffer()!;
         gl.bindBuffer(gl.ARRAY_BUFFER,this.BO);
         gl.bufferData(gl.ARRAY_BUFFER,48,gl.DYNAMIC_DRAW);//size === 48bytes -- uniformblock里有12个float
@@ -454,12 +452,7 @@ export class notSimpleLayer implements CustomLayerInterface {
             '/shaders/trajectory.noCulling.vert',
             '/shaders/trajectory.noCulling.frag',
         )
-        this.poolShaderObj = await this.init2ShadersFromSrc(
-            gl,
-            '/shaders/showPool.vert',
-            '/shaders/showPool.frag',
-        )
-        
+
         gl.bindBuffer(gl.ARRAY_BUFFER,null);
         gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER,null);
         gl.bindVertexArray(null);
@@ -475,7 +468,6 @@ export class notSimpleLayer implements CustomLayerInterface {
 
     tickfunc(gl:WebGL2RenderingContext , matrix: number[]){
         this.beginBlock = (this.beginBlock+1)%this.parser.segmentNum;
-        console.log(this.beginBlock );//应当是0：：第一次
         
         this.swap();
         
@@ -561,7 +553,7 @@ export class notSimpleLayer implements CustomLayerInterface {
             0) // particle data from buffer to texture
         gl.bindTexture(gl.TEXTURE_2D,null);
         gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER,null);
-        gl.finish();
+        gl.finish(); // wait gpu finish all assignments
 
         
         // ----wait for all block is updated
@@ -581,10 +573,10 @@ export class notSimpleLayer implements CustomLayerInterface {
 
         // ------some rendering options
         gl.disable(gl.DEPTH_TEST);
-        gl.enable(gl.BLEND);
-        gl.blendColor(0.0, 0.0, 0.0, 0.0);
-        gl.blendEquation(gl.FUNC_ADD);
-        gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        // gl.enable(gl.BLEND);
+        // gl.blendColor(0.0, 0.0, 0.0, 0.0);
+        // gl.blendEquation(gl.FUNC_ADD);
+        // gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
         // ------primitive == 0  ---> flow
         // ------trajectoryShader working!
@@ -615,7 +607,7 @@ export class notSimpleLayer implements CustomLayerInterface {
         
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,(this.parser.segmentNum - 1)*2 , this.parser.trajectoryNum);
 
-        gl.disable(gl.BLEND);
+        // gl.disable(gl.BLEND);
         gl.bindVertexArray(null);
         gl.bindTexture(gl.TEXTURE_2D,null);
 

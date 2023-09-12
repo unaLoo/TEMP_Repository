@@ -37,7 +37,8 @@ onmessage = async function(e){
                 tempGL.deleteTexture(tempTex);
                 tempGL.finish();
                 // 返回pixeldata所用的二进制缓冲区
-                
+
+                // console.log('pixelData.buffer::'+pixelData.buffer);
                 this.postMessage(pixelData.buffer);
                 }).catch(()=>{
                 console.log('ERROR::getBlobBufferData::createImageBitmap');

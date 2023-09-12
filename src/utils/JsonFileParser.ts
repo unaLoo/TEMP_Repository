@@ -22,8 +22,6 @@ export class JsonFileParser{
     }
 
     async Parsing(){
-        // console.log('parsing');
-        
         await axios.get(this.url)
         .then((response)=>{ 
             for(let item of response.data['flow_fields']){
