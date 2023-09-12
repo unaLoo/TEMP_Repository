@@ -588,6 +588,8 @@ export class notSimpleLayer implements CustomLayerInterface {
 
         // ------primitive == 0  ---> flow
         // ------trajectoryShader working!
+
+
         gl.useProgram(this.trajectoryShaderObj.program);
         location = gl.getUniformLocation(this.trajectoryShaderObj.program,'particlePool');
         gl.uniform1i(location,0);

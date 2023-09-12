@@ -13,7 +13,7 @@ layout (std140) uniform FlowFieldUniforms
     float dropRateBump;
     float speedFactor;
     float colorScheme;
-    vec4 flowBoundary; // vec4(uMin, vMin, uMax, vMax)
+    vec4 flowBoundary; // vec4(uMin, vMin, uMax, vMax)  
     
 };
 
@@ -55,7 +55,7 @@ float is_in_flow_progress(vec2 resolution, vec2 uv)
 
 vec2 get_speed(sampler2D sFlowField, vec2 uv)
 {
-    vec2 speed_tl = texture(sFlowField, uv).rg;
+    vec2 speed_tl = texture(sFlowField, uv).rg;  
     return speed_tl;
 }
 
