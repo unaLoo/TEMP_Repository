@@ -13,23 +13,20 @@ export class notSimpleLayer implements CustomLayerInterface {
     parser:any;
     map:mapboxgl.Map | null = null;
     GL:WebGL2RenderingContext | null = null;
+    isReparsed:boolean = false;
 
     uboMapBufferData:Float32Array = new Float32Array(12);
     phaseCount: number = 0.0;
     timeLast: number = 10.0;
     _timeCount: number = 0.0;   
+    _progressRate = 0.0;
+    
     textureArraySize: number = 0;
-
     flowFieldTextureArr:Array<WebGLTexture> = [0,0,0];
     seedingTextureArr:Array<WebGLTexture> = [0,0,0];
     transformTexture:WebGLTexture = 0;
 
-    now_FFTextureArr:Array<WebGLTexture> = [0,0];
-    now_SeedTextureArr:Array<WebGLTexture> = [0,0];
     
-    _progressRate = 0.0;
-
-    // buffer
     particleMapBufferData: Float32Array = new Float32Array(0);
 
     simulationBuffer: WebGLBuffer = 0;
@@ -44,24 +41,23 @@ export class notSimpleLayer implements CustomLayerInterface {
 
     XFO:WebGLTransformFeedback = 0;
     XFO2:WebGLTransformFeedback = 0;
-    xfBO:WebGLTransformFeedback = 0;
 
     trajectoryPool:WebGLTexture = 0;
 
     // updateShaderObj:{program:WebGLProgram,vertexShader:WebGLShader,fragmentShader:WebGLShader}
     updateShaderObj:any;
     trajectoryShaderObj:any;
-    pointShaderObj:any;
     poolShaderObj:any;
 
-
-    //render
     isReady:boolean = false;
     renderVAO:WebGLVertexArrayObject=0;
     renderVAO2:WebGLVertexArrayObject=0;
     textureOffsetArray:Array<{offsetX:number , offsetY:number}> = [];
 
     beginBlock:number = -1.0;
+
+    now_FFTextureArr:Array<WebGLTexture> = [0,0];
+    now_SeedTextureArr:Array<WebGLTexture> = [0,0];
     now_sVAO:WebGLVertexArrayObject = 0;
     now_rVAO:WebGLVertexArrayObject =0 ;
     now_XFO:WebGLTransformFeedback = 0;//XF对象
@@ -80,21 +76,23 @@ export class notSimpleLayer implements CustomLayerInterface {
         //phase is the progressRate * phaseCount   === textureSrc index 
         //new phase ---> checkout new texture
 
-        const lastPhase = Math.floor(this._progressRate * this.phaseCount);
-        //value would be (timecount+1)/timeLast
+        const lastPhase = Math.floor(this._progressRate * this.phaseCount);//value would be (timecount+1)/timeLast
         const currentPhase =  Math.floor(value * this.phaseCount) % this.phaseCount;
         const nextPhase = (currentPhase + 2) % this.phaseCount; // +2 ？
 
         this._progressRate = value;
         
-        const newCurrentPhase = Math.floor(this._progressRate * this.phaseCount);
+        const newCurrentPhase = Math.floor(value * this.phaseCount);
         const newNextPhase = (newCurrentPhase+1) % this.phaseCount;
         this.now_FFTextureArr[0] = this.flowFieldTextureArr[newCurrentPhase%this.textureArraySize],
         this.now_FFTextureArr[1] = this.flowFieldTextureArr[newNextPhase%this.textureArraySize];
         this.now_SeedTextureArr[0] = this.seedingTextureArr[newCurrentPhase%this.textureArraySize],
         this.now_SeedTextureArr[1] = this.seedingTextureArr[newNextPhase%this.textureArraySize];
+
+        // console.log('flowfieldTextureArray:',newCurrentPhase%this.textureArraySize, newNextPhase%this.textureArraySize);
+        // console.log('seedingTextureArray:',newCurrentPhase%this.textureArraySize,newNextPhase%this.textureArraySize);
         
-        let temp = this.progressRate * this.phaseCount;
+        let temp = value * this.phaseCount;
         this.uboMapBufferData[0] = temp - Math.floor(temp);
 
         if(currentPhase != lastPhase){
@@ -103,7 +101,10 @@ export class notSimpleLayer implements CustomLayerInterface {
             let gl:WebGL2RenderingContext = this.GL!;
             this.UpdateTextureByImage(gl,this.flowFieldTextureArr[index],gl.RG,gl.LINEAR,
                  this.parser.flowFieldTexSize[0],this.parser.flowFieldTexSize[1],
-                 this.parser.flowFieldResourceArr[nextPhase],'Float')
+                 this.parser.flowFieldResourceArr[nextPhase],'Float');
+            this.UpdateTextureByImage(gl,this.seedingTextureArr[index],gl.RGBA,gl.NEAREST,
+                this.parser.seedingTexSize[0],this.parser.seedingTexSize[1],
+                this.parser.seedingResourceArr[nextPhase],'UNSIGHNED_BYTE');
         }
     }
 
@@ -168,6 +169,7 @@ export class notSimpleLayer implements CustomLayerInterface {
 
     async FillTextureByImage(gl:WebGL2RenderingContext,Tex:WebGLTexture,format:number,filter:number,width:number,height:number,imgSrc:string,type:string){
        
+        //reparsing 
         if(type === 'Float'){
             const worker = new Worker(new URL('./readPixel.worker', import.meta.url));
             worker.postMessage([0,imgSrc]);
@@ -176,11 +178,14 @@ export class notSimpleLayer implements CustomLayerInterface {
                 gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,format,gl.FLOAT,new Float32Array(e.data));
 
                 
-                //generateMipmap ? 
+                //no generateMipmap 
                 gl.bindTexture(gl.TEXTURE_2D,null);
                 gl.finish();
                 worker.postMessage([1]);
                 worker.terminate();
+                this.isReparsed = true;
+                // console.log('reparsing完毕');
+                
             }
         }
         else {
@@ -193,9 +198,10 @@ export class notSimpleLayer implements CustomLayerInterface {
                     gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,format,gl.UNSIGNED_BYTE,bitmap);
 
                     
-                    //generateMipmap ? 
+                    //no generateMipmap 
                     gl.bindTexture(gl.TEXTURE_2D,null);
                     gl.finish();
+                    console.log('unsigned_byte reparsing完毕');
 
                 })
             })
@@ -243,11 +249,13 @@ export class notSimpleLayer implements CustomLayerInterface {
         //just for short writing
         this.parser = this.ffManager.parser;
         // maxSegmentNum === segmentNum === segmentPrepare
+        
+        this.parser.trajectoryNum = this.ffManager.controller.lineNum;
         this.parser.segmentPrepare = this.ffManager.parser.maxSegmentNum;
         this.parser.segmentNum = this.ffManager.parser.maxSegmentNum;
         this.parser.maxBlockSize = Math.ceil(Math.sqrt(this.parser.maxTrajectoryNum));
 
-
+        
         // why?
         // the last one is a phase from the end to the head
         this.phaseCount = this.parser.flowFieldResourceArr.length;
@@ -256,23 +264,34 @@ export class notSimpleLayer implements CustomLayerInterface {
         // why 3?
         this.textureArraySize = 3;
 
-         for(var i=0;i<this.textureArraySize;i++){
+        for(var i=0;i<this.textureArraySize;i++){
             let ff_tex = gl.createTexture()!;
             gl.bindTexture(gl.TEXTURE_2D,ff_tex);
             gl.texStorage2D(gl.TEXTURE_2D,1,gl.RG32F,this.parser.flowFieldTexSize[0],this.parser.flowFieldTexSize[1]);
             gl.bindTexture(gl.TEXTURE_2D,null);
+
             await this.FillTextureByImage(gl,ff_tex,gl.RG,gl.LINEAR,this.parser.flowFieldTexSize[0],this.parser.flowFieldTexSize[1],this.parser.flowFieldResourceArr[i],'Float');
+
             this.flowFieldTextureArr[i]=(ff_tex);
+            
 
 
             let seed_tex = gl.createTexture()!;
             gl.bindTexture(gl.TEXTURE_2D,seed_tex);
             gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA8,this.parser.seedingTexSize[0],this.parser.seedingTexSize[1]);
             gl.bindTexture(gl.TEXTURE_2D,null);
-            await this.FillTextureByImage(gl,seed_tex,gl.RGBA,gl.NEAREST,this.parser.seedingTexSize[0],this.parser.seedingTexSize[1],this.parser.seedingResourceArr[i],'UNSIGNED_BYTE');
+
+            await this.FillTextureByImage(gl,seed_tex,gl.RGBA,gl.NEAREST,
+                this.parser.seedingTexSize[0],this.parser.seedingTexSize[1],
+                this.parser.seedingResourceArr[i],'UNSIGNED_BYTE');
+
+
             this.seedingTextureArr[i]=seed_tex;
-            //能成功await到fill by image吗？
-            }
+            //能成功await到fill by image吗？ 并不能
+        }
+
+        
+
         let trans_tex = gl.createTexture()!;
         gl.bindTexture(gl.TEXTURE_2D,trans_tex);
         gl.texStorage2D(gl.TEXTURE_2D,1,gl.RG32F,this.parser.projectionTexSize[0],this.parser.projectionTexSize[1]);
@@ -318,7 +337,6 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.bufferData(gl.ARRAY_BUFFER,particleCountdownData,gl.DYNAMIC_DRAW);
         gl.bindBuffer(gl.ARRAY_BUFFER,null);
 
-        //question,  i did not use the lifebuffer and xflifebuffer finally?
 
     
         //vertex Array object
@@ -388,6 +406,8 @@ export class notSimpleLayer implements CustomLayerInterface {
         this.parser.maxBlockColumn = Math.floor(this.parser.maxTextureSize/this.parser.maxBlockSize);
 
         //build offser array
+
+        
         for(let i = 0 ;i<this.parser.maxSegmentNum;i++){
             let offsetItem = {
                 offsetX:this.parser.maxBlockSize*((i)%this.parser.maxBlockColumn),
@@ -409,6 +429,7 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.bindTexture(gl.TEXTURE_2D,null);
 
         //fill each block by particlebufferdata
+        
         for (let i = 0;i<this.parser.maxSegmentNum;i++){
             this.FillBlockByData(
                 gl,this.trajectoryPool,
@@ -441,8 +462,6 @@ export class notSimpleLayer implements CustomLayerInterface {
         
         gl.bindBuffer(gl.ARRAY_BUFFER,null);
         gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER,null);
-        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK,null);
-        gl.bindTexture(gl.TEXTURE_2D,null);
         gl.bindVertexArray(null);
 
         this.uboMapBufferData[8] = this.parser.flowBoundary[0];
@@ -456,27 +475,31 @@ export class notSimpleLayer implements CustomLayerInterface {
 
     tickfunc(gl:WebGL2RenderingContext , matrix: number[]){
         this.beginBlock = (this.beginBlock+1)%this.parser.segmentNum;
+        console.log(this.beginBlock );//应当是0：：第一次
+        
         this.swap();
         
         if(this.ffManager.controller.isUnsteady){
             this.progressRate = this.timeCount/this.timeLast;
-            // here  set the uboMapBufferData[0]
+            // here  set the uboMapBufferData[0] -- would be a data in (0,1)
             this.timeCount = this.timeCount + 1;
         }
         
-        this.uboMapBufferData[1] = this.ffManager.controller.segmentNum;
-        this.uboMapBufferData[2] = this.ffManager.controller.fullLife;
+        
+        this.uboMapBufferData[1] = this.parser.maxSegmentNum;
+        this.uboMapBufferData[2] = this.parser.maxSegmentNum*10;
         this.uboMapBufferData[3] = this.ffManager.controller.dropRate;
         this.uboMapBufferData[4] = this.ffManager.controller.dropRateBump;
-        this.uboMapBufferData[5] = this.ffManager.controller.speedFactor;
+        this.uboMapBufferData[5] = this.ffManager.controller.speedFactor * 0.01 * 100;
         this.uboMapBufferData[6] = this.ffManager.controller.colorScheme;
-        // [7] ?
+        
+        // [7]?               ------ notice the offset
         // 下面的部分放prepare
         // this.uboMapBufferData[8] = this.parser.flowBoundary[0];
         // this.uboMapBufferData[9] = this.parser.flowBoundary[1];
         // this.uboMapBufferData[10] = this.parser.flowBoundary[2];
         // this.uboMapBufferData[11] = this.parser.flowBoundary[3];
-
+        
         //## simulation
 
         gl.bindBuffer(gl.UNIFORM_BUFFER,this.BO);//array_buffer as uniform_buffer
@@ -507,20 +530,24 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.uniform1f(location,Math.random());
         let blockIndex:number = 0;
         blockIndex = gl.getUniformBlockIndex(this.updateShaderObj.program,'FlowFieldUniforms');
+        
         gl.uniformBlockBinding(this.updateShaderObj.program,blockIndex,bindingPoint);//bind uniformblock to the specific bindingpoint
 
         gl.enable(gl.RASTERIZER_DISCARD);
         gl.beginTransformFeedback(gl.POINTS);
+        
         gl.drawArrays(gl.POINTS,0,this.parser.trajectoryNum);  //just one block
         gl.endTransformFeedback();
         gl.disable(gl.RASTERIZER_DISCARD);
 
         gl.bindVertexArray(null);
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK,null);
-
+           
+        console.log('simulation is done for one block');
+    
+    
         //-----update TrajectoryPool by the XFBO
-        gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER,this.now_XFBO);
-
+        gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER,this.now_XFBO); //store the block simulated data
         // texSubImage2D  can  read from  unpack_BUFFER  no need to be parameter
         gl.bindTexture(gl.TEXTURE_2D,this.trajectoryPool);
         //just the begin block
@@ -531,18 +558,19 @@ export class notSimpleLayer implements CustomLayerInterface {
             this.parser.maxBlockSize,
             gl.RGB,
             gl.FLOAT,
-            0)
+            0) // particle data from buffer to texture
         gl.bindTexture(gl.TEXTURE_2D,null);
         gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER,null);
         gl.finish();
 
+        
         // ----wait for all block is updated
         if(this.parser.segmentPrepare > 0 ){
             this.parser.segmentPrepare--;
             return;
         }
 
-        console.log('all block is updated ， start rendering');
+        // // console.log('all block is updated , start rendering');
         
         //## render
         gl.bindVertexArray(this.now_rVAO);
@@ -582,22 +610,13 @@ export class notSimpleLayer implements CustomLayerInterface {
         blockIndex = gl.getUniformBlockIndex(this.trajectoryShaderObj.program,'FlowFieldUniforms');
         gl.uniformBlockBinding(this.trajectoryShaderObj.program,blockIndex,bindingPoint);
 
+        
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,(this.parser.segmentNum - 1)*2 , this.parser.trajectoryNum);
 
         gl.disable(gl.BLEND);
         gl.bindVertexArray(null);
         gl.bindTexture(gl.TEXTURE_2D,null);
 
-
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.useProgram(this.poolShaderObj.program);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D,this.trajectoryPool);
-        location = gl.getUniformLocation(this.poolShaderObj.program,'viewport');
-        gl.uniform2f(location,gl.canvas.width,gl.canvas.height);
-        gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,1);
-        gl.disable(gl.BLEND);
     }
 
 
@@ -620,8 +639,5 @@ export class notSimpleLayer implements CustomLayerInterface {
         
         this.tickfunc(gl,matrix);
         this.map?.triggerRepaint();
-
-        
-            
     }
 }

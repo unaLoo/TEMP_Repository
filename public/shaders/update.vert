@@ -12,6 +12,7 @@ layout (std140) uniform FlowFieldUniforms
     float dropRate;
     float dropRateBump;
     float speedFactor;
+    float colorScheme;
     vec4 flowBoundary; // vec4(uMin, vMin, uMax, vMax)
     
 };

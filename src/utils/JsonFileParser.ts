@@ -53,6 +53,7 @@ export class JsonFileParser{
             this.maxDropRate = response.data['constraints']['max_drop_rate'];
             this.maxDropRateBump = response.data['constraints']['max_drop_rate_bump'];
             this.maxSegmentNum = response.data['constraints']['max_segment_num'];
+            
             // trajectoryNum === streamline_num
             this.maxTrajectoryNum  = response.data['constraints']['max_streamline_num'];
             this.maxTextureSize= response.data['constraints']['max_texture_size'];
