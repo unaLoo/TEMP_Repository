@@ -3,7 +3,7 @@ precision highp float;
 
 layout (location=0) in vec3 particleInfo;
 layout (location=1) in float age;
-
+    
 layout (std140) uniform FlowFieldUniforms
 {
     float progress;
@@ -48,7 +48,7 @@ float is_in_flow_progress(vec2 resolution, vec2 uv)
     ivec2 xy2 = ivec2((int(color2.r * 255.0) << 8) + int(color2.g * 255.0), (int(color2.b * 255.0) << 8) + int(color2.a * 255.0));
     float isInFlow1 = float((xy1 == texcoords));
     float isInFlow2 = float((xy2 == texcoords));
-
+    //[-1,1]  <0.0 return 0 , >0.0 return 1;
     return step(0.0, 2.0 * mix(isInFlow1, isInFlow2, progress) - 1.0);
 }
 
@@ -62,8 +62,8 @@ vec2 lookup_speed(vec2 uv, vec2 resolution)
 {
     vec2 lSpeed = get_speed(flowField[0], uv);
     vec2 nSpeed = get_speed(flowField[1], uv);
-    vec2 speed = mix(lSpeed, nSpeed, progress);
-    return mix(flowBoundary.xy, flowBoundary.zw, speed);
+    vec2 speed = mix(lSpeed, nSpeed, progress);//linear interpolation
+    return mix(flowBoundary.xy, flowBoundary.zw, speed);//from [0,0]<->[1,1] to [umin,vmin]<->[umax,vmax]
 }
 
 float speed_rate(vec2 speed)
@@ -75,7 +75,7 @@ void die(vec2 resolution)
 {
     vec2 seed = randomSeed + particleInfo.xy;
 
-    vec2 uv = vec2(rand(seed + 1.3), rand(seed + 2.1));
+    vec2 uv = vec2(rand(seed + 1.3), rand(seed + 2.1));//？
     vec4 rebirthColor = texture(mask[1], uv);
     float rebirth_x = float((int(rebirthColor.r * 255.0) << 8) + int(rebirthColor.g * 255.0));
     float rebirth_y = float((int(rebirthColor.b * 255.0) << 8) + int(rebirthColor.a * 255.0));
@@ -94,7 +94,7 @@ void simulation(vec2 resolution)
     float speedRate = speed_rate(speed);
 
     vec2 nPos = vec2(particleInfo.xy + speed * speedFactor / resolution);
-    nPos = clamp(nPos, vec2(0.0), vec2(1.0));
+    nPos = clamp(nPos, vec2(0.0), vec2(1.0)); //return the middle value
     float dropped = drop(speedRate, uv) * is_in_flow_progress(resolution, nPos);
 
     newInfo = mix(particleInfo, vec3(nPos, speedRate), dropped);
@@ -115,8 +115,11 @@ void rebirth()
 
 void main()
 {
+    //textureSize(sampler,lodlevel)
     vec2 resolution = vec2(textureSize(mask[1], 0));
-    
+    //in the beginning:: segmentNum is 16
+    //age is 16 * 9 
+    //fullLife is the 16*10 
     if (age < fullLife - segmentNum)
     {
         simulation(resolution);

@@ -30,13 +30,13 @@ export class FlowFieldManager {
     initMap() {
         const opt: mapboxgl.MapboxOptions & { useWebGL2: boolean } = {
             container: "mapContainer",
-            style: "mapbox://styles/ycsoku/cldjl0d2m000501qlpmmex490", // style URL
+            style: 'mapbox://styles/nujabesloo/clmhdapg6018i01pv0ghs04c0', // style URL
             center: [120.980697, 31.684162], // starting position [lng, lat]
-            zoom: 9,
+            zoom: 10,
             antialias: true,
             useWebGL2: true,
             attributionControl: false,
-            accessToken: "pk.eyJ1IjoieWNzb2t1IiwiYSI6ImNrenozdWdodDAza3EzY3BtdHh4cm5pangifQ.ZigfygDi2bK4HXY1pWh-wg",
+            accessToken: 'pk.eyJ1IjoibnVqYWJlc2xvbyIsImEiOiJjbGp6Y3czZ2cwOXhvM3FtdDJ5ZXJmc3B4In0.5DCKDt0E2dFoiRhg3yWNRA',
         }
         this.map = new mapboxgl.Map(opt);
 

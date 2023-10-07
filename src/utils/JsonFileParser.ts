@@ -38,10 +38,10 @@ export class JsonFileParser{
             this.seedingTexSize = response.data['texture_size']['area_mask'];
             this.projectionTexSize = response.data['texture_size']['projection'];
 
-            this.flowBoundary[0] = response.data['flow_boundary']['u_max'];
-            this.flowBoundary[1] = response.data['flow_boundary']['u_min'];
-            this.flowBoundary[2] = response.data['flow_boundary']['v_max'];
-            this.flowBoundary[3] = response.data['flow_boundary']['v_min'];
+            this.flowBoundary[0] = response.data['flow_boundary']['u_min'];
+            this.flowBoundary[1] = response.data['flow_boundary']['v_min'];
+            this.flowBoundary[2] = response.data['flow_boundary']['u_max'];
+            this.flowBoundary[3] = response.data['flow_boundary']['v_max'];
 
             this.extent[0] = response.data['extent'][0];
             this.extent[1] = response.data['extent'][1];

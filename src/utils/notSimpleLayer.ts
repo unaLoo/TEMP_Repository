@@ -13,7 +13,6 @@ export class notSimpleLayer implements CustomLayerInterface {
     parser:any;
     map:mapboxgl.Map | null = null;
     GL:WebGL2RenderingContext | null = null;
-    isReparsed:boolean = false;
 
     uboMapBufferData:Float32Array = new Float32Array(12);
     phaseCount: number = 0.0;
@@ -37,7 +36,6 @@ export class notSimpleLayer implements CustomLayerInterface {
 
     simulationVAO: WebGLVertexArrayObject = 0;
     simulationVAO2: WebGLVertexArrayObject = 0; 
-    sVAO:WebGLVertexArrayObject = 0;
 
     XFO:WebGLTransformFeedback = 0;
     XFO2:WebGLTransformFeedback = 0;
@@ -47,7 +45,6 @@ export class notSimpleLayer implements CustomLayerInterface {
     // updateShaderObj:{program:WebGLProgram,vertexShader:WebGLShader,fragmentShader:WebGLShader}
     updateShaderObj:any;
     trajectoryShaderObj:any;
-    poolShaderObj:any;
 
     isReady:boolean = false;
     renderVAO:WebGLVertexArrayObject=0;
@@ -171,21 +168,64 @@ export class notSimpleLayer implements CustomLayerInterface {
        
         //reparsing 
         if(type === 'Float'){
-            const worker = new Worker(new URL('./readPixel.worker', import.meta.url));
-            worker.postMessage([0,imgSrc]);
-            worker.onmessage = (e)=>{
+            // const worker = new Worker(new URL('./readPixel.worker', import.meta.url));
+            // worker.postMessage([0,imgSrc]);
+            // worker.onmessage = (e)=>{
 
-                gl.bindTexture(gl.TEXTURE_2D,Tex);
-                gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,format,gl.FLOAT,new Float32Array(e.data));
+            //     gl.bindTexture(gl.TEXTURE_2D,Tex);
+            //     gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,format,gl.FLOAT,new Float32Array(e.data));
                 
-                //no generateMipmap 
-                gl.bindTexture(gl.TEXTURE_2D,null);
-                gl.finish();
-                worker.postMessage([1]);
-                worker.terminate();
-                // console.log('reparsing完毕');
+            //     //no generateMipmap 
+            //     gl.bindTexture(gl.TEXTURE_2D,null);
+            //     gl.finish();
+            //     worker.postMessage([1]);
+            //     worker.terminate();
+            //     // console.log('reparsing完毕');
                 
-            }
+            // }
+            axios.get(imgSrc,{responseType:'blob'})
+            .then((response)=>{
+                createImageBitmap(response.data,{imageOrientation:'flipY',
+                    premultiplyAlpha:'none',colorSpaceConversion:'default'})
+                .then((bitmap)=>{
+                    
+                    const pixelData = new Uint8Array(bitmap.width*bitmap.height*4);
+                    const ofsCanvas = new OffscreenCanvas(bitmap.width,bitmap.height);
+                    const ofsGL = ofsCanvas.getContext('webgl2')!;
+
+                    const FB = ofsGL.createFramebuffer();
+                    ofsGL.bindFramebuffer(ofsGL.FRAMEBUFFER,FB);
+
+                    const ofsTex = ofsGL.createTexture();
+                    ofsGL.bindTexture(ofsGL.TEXTURE_2D,ofsTex);
+                    ofsGL.texImage2D(ofsGL.TEXTURE_2D,0,ofsGL.RGBA8,bitmap.width,bitmap.height,
+                            0,ofsGL.RGBA,ofsGL.UNSIGNED_BYTE,bitmap);
+                    ofsGL.texParameteri(ofsGL.TEXTURE_2D,ofsGL.TEXTURE_MAG_FILTER,ofsGL.LINEAR);
+                    ofsGL.texParameteri(ofsGL.TEXTURE_2D,ofsGL.TEXTURE_MIN_FILTER,ofsGL.LINEAR);
+                
+                    ofsGL.framebufferTexture2D(ofsGL.FRAMEBUFFER,ofsGL.COLOR_ATTACHMENT0,ofsGL.TEXTURE_2D,ofsTex,0);
+                    ofsGL.readPixels(0,0,bitmap.width,bitmap.height,ofsGL.RGBA,ofsGL.UNSIGNED_BYTE,pixelData);
+                    
+                    ofsGL.bindTexture(ofsGL.TEXTURE_2D,null);
+                    ofsGL.bindFramebuffer(ofsGL.FRAMEBUFFER,null);
+                    ofsGL.deleteTexture(ofsTex);
+                    ofsGL.deleteFramebuffer(FB);
+                    ofsGL.finish();
+
+                    //get pixelData.buffer
+                    gl.bindTexture(gl.TEXTURE_2D,Tex);
+                    gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,gl.RG,gl.FLOAT,new Float32Array(pixelData.buffer));
+
+                    gl.bindTexture(gl.TEXTURE_2D,null);
+                    gl.finish();
+
+                }).catch((e)=>{
+                    console.log('ERROR::FillTextureByImage CREATEIMAGEBITMAP ERROR'+e);
+                })
+                    
+            }).catch((e)=>{
+                console.log('ERROR::FillTextureByImage GET IMG ERROR'+e);
+            })
         }
         else {
             await axios.get(imgSrc,{responseType:'blob'})
@@ -273,8 +313,6 @@ export class notSimpleLayer implements CustomLayerInterface {
 
             this.flowFieldTextureArr[i]=(ff_tex);
             
-
-
             let seed_tex = gl.createTexture()!;
             gl.bindTexture(gl.TEXTURE_2D,seed_tex);
             gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA8,this.parser.seedingTexSize[0],this.parser.seedingTexSize[1]);
@@ -294,7 +332,9 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.bindTexture(gl.TEXTURE_2D,trans_tex);
         gl.texStorage2D(gl.TEXTURE_2D,1,gl.RG32F,this.parser.projectionTexSize[0],this.parser.projectionTexSize[1]);
         gl.bindTexture(gl.TEXTURE_2D,null);
-        await this.FillTextureByImage(gl,trans_tex,gl.RG,gl.LINEAR,this.parser.projectionTexSize[0],this.parser.projectionTexSize[1],this.parser.projection2DResource,'Float');
+        await this.FillTextureByImage(gl,trans_tex,gl.RG,gl.LINEAR,
+            this.parser.projectionTexSize[0],this.parser.projectionTexSize[1],
+            this.parser.projection2DResource,'Float');
         this.transformTexture = trans_tex;
 
         this.particleMapBufferData = new Float32Array(this.parser.maxBlockSize*this.parser.maxBlockSize*3).fill(0);//one block`s data 
@@ -312,7 +352,7 @@ export class notSimpleLayer implements CustomLayerInterface {
         for (let i = 0; i < this.parser.maxTrajectoryNum; i++) {
              //maxTrajectoryNum is equal to blocksize*blocksize
             particleCountdownData[i] = this.parser.maxSegmentNum*9.0;
-            //why 9.0?    9frame per block?
+            //particle age is the maxSegmentNum*9
         }
 
         //buffer for simulation
@@ -342,10 +382,12 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.bindVertexArray(this.simulationVAO);
         gl.bindBuffer(gl.ARRAY_BUFFER,this.simulationBuffer);
         gl.vertexAttribPointer(0,3,gl.FLOAT,false,3*4,0);
+
         gl.enableVertexAttribArray(0); // 第0个属性，每次读3个，滑动3*4 bits，从0开始
         gl.bindBuffer(gl.ARRAY_BUFFER,this.lifeBuffer);
         gl.vertexAttribPointer(1,1,gl.FLOAT,false,1*4,0);
         gl.enableVertexAttribArray(1);
+        
         gl.bindVertexArray(null);
         gl.bindBuffer(gl.ARRAY_BUFFER,null);
 
@@ -528,6 +570,7 @@ export class notSimpleLayer implements CustomLayerInterface {
         gl.enable(gl.RASTERIZER_DISCARD);
         gl.beginTransformFeedback(gl.POINTS);
         
+        
         gl.drawArrays(gl.POINTS,0,this.parser.trajectoryNum);  //just one block
         gl.endTransformFeedback();
         gl.disable(gl.RASTERIZER_DISCARD);
@@ -543,6 +586,9 @@ export class notSimpleLayer implements CustomLayerInterface {
         // texSubImage2D  can  read from  unpack_BUFFER  no need to be parameter
         gl.bindTexture(gl.TEXTURE_2D,this.trajectoryPool);
         //just the begin block
+        // console.log('this.maxBlockSize::'+this.parser.maxBlockSize);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
+        
         gl.texSubImage2D(gl.TEXTURE_2D,0,
             this.textureOffsetArray[this.beginBlock].offsetX,
             this.textureOffsetArray[this.beginBlock].offsetY,
