@@ -1,0 +1,75 @@
+{
+    "area_masks": [
+        "/BuilderData/images/mask_100.png",
+        "/BuilderData/images/mask_101.png",
+        "/BuilderData/images/mask_102.png",
+        "/BuilderData/images/mask_103.png",
+        "/BuilderData/images/mask_104.png",
+        "/BuilderData/images/mask_105.png",
+        "/BuilderData/images/mask_106.png",
+        "/BuilderData/images/mask_107.png",
+        "/BuilderData/images/mask_108.png",
+        "/BuilderData/images/mask_109.png"
+    ],
+    "constraints": {
+        "max_drop_rate": 0.1,
+        "max_drop_rate_bump": 0.2,
+        "max_segment_num": 64,
+        "max_streamline_num": 262144,
+        "max_texture_size": 4096
+    },
+    "extent": [
+        -2734181.1539919865,
+        4727600.767034908,
+        -2865155.468768213,
+        4588963.522663449
+    ],
+    "flow_boundary": {
+        "u_max": 2.2071,
+        "u_min": -2.1176,
+        "v_max": 1.9086,
+        "v_min": -1.8627
+    },
+    "flow_fields": [
+        "/BuilderData/images/uv_100.png",
+        "/BuilderData/images/uv_101.png",
+        "/BuilderData/images/uv_102.png",
+        "/BuilderData/images/uv_103.png",
+        "/BuilderData/images/uv_104.png",
+        "/BuilderData/images/uv_105.png",
+        "/BuilderData/images/uv_106.png",
+        "/BuilderData/images/uv_107.png",
+        "/BuilderData/images/uv_108.png",
+        "/BuilderData/images/uv_109.png"
+    ],
+    "projection": [
+        "/BuilderData/images/projection_mapbox.png",
+        "/BuilderData/images/projection_cesium.png"
+    ],
+    "texture_size": {
+        "area_mask": [
+            1024,
+            558
+        ],
+        "flow_field": [
+            1024,
+            558
+        ],
+        "projection": [
+            1024,
+            2048
+        ]
+    },
+    "valid_address": [
+        "/images/valid_100.png",
+        "/images/valid_101.png",
+        "/images/valid_102.png",
+        "/images/valid_103.png",
+        "/images/valid_104.png",
+        "/images/valid_105.png",
+        "/images/valid_106.png",
+        "/images/valid_107.png",
+        "/images/valid_108.png",
+        "/images/valid_109.png"
+    ]
+}

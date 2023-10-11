@@ -183,6 +183,8 @@ export class notSimpleLayer implements CustomLayerInterface {
             //     // console.log('reparsing完毕');
                 
             // }
+            console.log(imgSrc);
+            
             axios.get(imgSrc,{responseType:'blob'})
             .then((response)=>{
                 createImageBitmap(response.data,{imageOrientation:'flipY',
@@ -457,7 +459,7 @@ export class notSimpleLayer implements CustomLayerInterface {
         }
 
         // this.particleMapBufferData = new Float32Array(this.parser.maxBlockSize * this.parser.maxBlockSize * 3).fill(0);
-        this.BO = gl.createBuffer()!;
+        this.BO = gl.createBuffer()!;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
         gl.bindBuffer(gl.ARRAY_BUFFER,this.BO);
         gl.bufferData(gl.ARRAY_BUFFER,48,gl.DYNAMIC_DRAW);//size === 48bytes -- uniformblock里有12个float
         gl.bindBuffer(gl.ARRAY_BUFFER,null);
@@ -465,11 +467,11 @@ export class notSimpleLayer implements CustomLayerInterface {
         //init the trajectory pool
         this.trajectoryPool = gl.createTexture()!;
         gl.bindTexture(gl.TEXTURE_2D,this.trajectoryPool);
+        //Allocate the memory space of trajectoryPool
         gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGB32F,this.parser.maxTextureSize,this.parser.maxTextureSize);
         gl.bindTexture(gl.TEXTURE_2D,null);
 
         //fill each block by particlebufferdata
-        
         for (let i = 0;i<this.parser.maxSegmentNum;i++){
             this.FillBlockByData(
                 gl,this.trajectoryPool,
@@ -653,7 +655,6 @@ export class notSimpleLayer implements CustomLayerInterface {
         
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,(this.parser.segmentNum - 1)*2 , this.parser.trajectoryNum);
 
-        // gl.disable(gl.BLEND);
         gl.bindVertexArray(null);
         gl.bindTexture(gl.TEXTURE_2D,null);
 

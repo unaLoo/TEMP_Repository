@@ -7,12 +7,12 @@ layout (location=1) in float age;
 layout (std140) uniform FlowFieldUniforms
 {
     float progress;
-    float segmentNum;
-    float fullLife;
-    float dropRate;
-    float dropRateBump;
-    float speedFactor;
-    vec4 flowBoundary; // vec4(uMin, vMin, uMax, vMax)
+    float segmentNum;//8
+    float fullLife;//80
+    float dropRate;//0.003
+    float dropRateBump;//0.001
+    float speedFactor;//2.0
+    vec4 flowBoundary; // vec4(uMin, vMin, uMax, vMax)   (-2.1176,-1.8959,2.3461,2.0175)
     
 };
 
@@ -60,15 +60,15 @@ vec2 get_speed(sampler2D sFlowField, vec2 uv)
 
 vec2 lookup_speed(vec2 uv, vec2 resolution)
 {
-    vec2 lSpeed = get_speed(flowField[0], uv);
-    vec2 nSpeed = get_speed(flowField[1], uv);
+    vec2 lSpeed = get_speed(flowField[0], uv);//last
+    vec2 nSpeed = get_speed(flowField[1], uv);//next
     vec2 speed = mix(lSpeed, nSpeed, progress);//linear interpolation
-    return mix(flowBoundary.xy, flowBoundary.zw, speed);//from [0,0]<->[1,1] to [umin,vmin]<->[umax,vmax]
+    return mix(flowBoundary.xy, flowBoundary.zw, speed);
 }
 
 float speed_rate(vec2 speed)
 {
-    return length(speed) / length(flowBoundary.zw);
+    return length(speed) / length(flowBoundary.zw);//接近0
 }
 
 void die(vec2 resolution)

@@ -179,9 +179,9 @@ export class FlowLayer implements CustomLayerInterface {
 
 
             
-            this.FillTextureByImage(gl,this.flowFieldTextureArray[index],gl.RG32F,gl.LINEAR,
+            this.FillTextureByImage(gl,this.flowFieldTextureArray[index],gl.RG,
                 this.dataManager.flowFieldTextureSize[0],this.dataManager.flowFieldTextureSize[1],
-                this.dataManager.flowFieldTextureSrcArray[nextPhase]);
+                this.dataManager.flowFieldTextureSrcArray[nextPhase],'Float');
                          
 
             ////
@@ -201,9 +201,9 @@ export class FlowLayer implements CustomLayerInterface {
 
 
             
-            this.FillTextureByImage(gl,this.flowFieldTextureArray[index],gl.RGBA8,gl.NEAREST,
+            this.FillTextureByImage(gl,this.flowFieldTextureArray[index],gl.RGBA,
                 this.dataManager.seedingTextureSize[0],this.dataManager.seedingTextureSize[1],
-                this.dataManager.seedingTextureSrcArray[nextPhase%this.textureArraySize]);
+                this.dataManager.seedingTextureSrcArray[nextPhase%this.textureArraySize],'UNSIGNED_BYTE');
 
             
         }        
@@ -211,21 +211,26 @@ export class FlowLayer implements CustomLayerInterface {
         this._progressRate = value;
     }
 
+    
+    async FillTextureByImage(gl:WebGL2RenderingContext,Tex:WebGLTexture,format:number,width:number,height:number,imgSrc:string,type:string){
+       
+        //reparsing 
+        if(type === 'Float'){
+            // const worker = new Worker(new URL('./readPixel.worker', import.meta.url));
+            // worker.postMessage([0,imgSrc]);
+            // worker.onmessage = (e)=>{
 
-
-    async FillTextureByImage(gl:WebGL2RenderingContext,Tex:WebGLTexture,internalformat:number
-        ,filter:number,width:number,height:number,imgSrc:string){
-        
-        //pass
-        if(internalformat === gl.RG32F){
-            //get image in blob type
-            //generate bitmap
-            //create framebuffer 
-            //create rgba8 texture by bitmap as a colorattachment
-            //read pixel
-            //get pixeldata
-            //fill texture by pixelData
-
+            //     gl.bindTexture(gl.TEXTURE_2D,Tex);
+            //     gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,format,gl.FLOAT,new Float32Array(e.data));
+                
+            //     //no generateMipmap 
+            //     gl.bindTexture(gl.TEXTURE_2D,null);
+            //     gl.finish();
+            //     worker.postMessage([1]);
+            //     worker.terminate();
+            //     // console.log('reparsing完毕');
+                
+            // }
             axios.get(imgSrc,{responseType:'blob'})
             .then((response)=>{
                 createImageBitmap(response.data,{imageOrientation:'flipY',
@@ -269,38 +274,117 @@ export class FlowLayer implements CustomLayerInterface {
             }).catch((e)=>{
                 console.log('ERROR::FillTextureByImage GET IMG ERROR'+e);
             })
-
         }
-
-        if(internalformat === gl.RGBA8){
-            //get image in blob type
-            //generate bitmap
-            //fill texture by bitmap
-            axios.get(imgSrc,{responseType:'blob'})
+        else {
+            await axios.get(imgSrc,{responseType:'blob'})
             .then((response)=>{
-                createImageBitmap(response.data,{imageOrientation:'flipY',
-                    premultiplyAlpha:'none',colorSpaceConversion:'default'})
+                createImageBitmap(response.data,{imageOrientation: "flipY", premultiplyAlpha: "none", colorSpaceConversion: "default"})
                 .then((bitmap)=>{
+                    // console.log("SUCCESS::GET BLOB RESPONSE & CREATE BITMAP FOR UNSIGNED_BYTE TYPE");
                     gl.bindTexture(gl.TEXTURE_2D,Tex);
-                    gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,bitmap);
+                    gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,format,gl.UNSIGNED_BYTE,bitmap);
                     
+                    //no generateMipmap 
                     gl.bindTexture(gl.TEXTURE_2D,null);
                     gl.finish();
-                }).catch((e)=>{
-                    console.log('ERROR::FillTextureByImage CREATEIMAGEBITMAP ERROR'+e);
+                    console.log('unsigned_byte reparsing完毕');
+
                 })
-
-            }).catch((e)=>{
-                console.log('ERROR::FillTextureByImage GET IMG ERROR'+e);
-                
             })
-
-
         }
 
-
-        return Tex;
+        
     }
+
+
+    // async FillTextureByImage(gl:WebGL2RenderingContext,Tex:WebGLTexture,internalformat:number
+    //     ,filter:number,width:number,height:number,imgSrc:string){
+        
+    //     //pass
+    //     if(internalformat === gl.RG32F){
+    //         //get image in blob type
+    //         //generate bitmap
+    //         //create framebuffer 
+    //         //create rgba8 texture by bitmap as a colorattachment
+    //         //read pixel
+    //         //get pixeldata
+    //         //fill texture by pixelData
+
+    //         axios.get(imgSrc,{responseType:'blob'})
+    //         .then((response)=>{
+    //             createImageBitmap(response.data,{imageOrientation:'flipY',
+    //                 premultiplyAlpha:'none',colorSpaceConversion:'default'})
+    //             .then((bitmap)=>{
+                    
+    //                 const pixelData = new Uint8Array(bitmap.width*bitmap.height*4);
+    //                 const ofsCanvas = new OffscreenCanvas(bitmap.width,bitmap.height);
+    //                 const ofsGL = ofsCanvas.getContext('webgl2')!;
+
+    //                 const FB = ofsGL.createFramebuffer();
+    //                 ofsGL.bindFramebuffer(ofsGL.FRAMEBUFFER,FB);
+
+    //                 const ofsTex = ofsGL.createTexture();
+    //                 ofsGL.bindTexture(ofsGL.TEXTURE_2D,ofsTex);
+    //                 ofsGL.texImage2D(ofsGL.TEXTURE_2D,0,ofsGL.RGBA8,bitmap.width,bitmap.height,
+    //                         0,ofsGL.RGBA,ofsGL.UNSIGNED_BYTE,bitmap);
+    //                 ofsGL.texParameteri(ofsGL.TEXTURE_2D,ofsGL.TEXTURE_MAG_FILTER,ofsGL.LINEAR);
+    //                 ofsGL.texParameteri(ofsGL.TEXTURE_2D,ofsGL.TEXTURE_MIN_FILTER,ofsGL.LINEAR);
+                
+    //                 ofsGL.framebufferTexture2D(ofsGL.FRAMEBUFFER,ofsGL.COLOR_ATTACHMENT0,ofsGL.TEXTURE_2D,ofsTex,0);
+    //                 ofsGL.readPixels(0,0,bitmap.width,bitmap.height,ofsGL.RGBA,ofsGL.UNSIGNED_BYTE,pixelData);
+                    
+    //                 ofsGL.bindTexture(ofsGL.TEXTURE_2D,null);
+    //                 ofsGL.bindFramebuffer(ofsGL.FRAMEBUFFER,null);
+    //                 ofsGL.deleteTexture(ofsTex);
+    //                 ofsGL.deleteFramebuffer(FB);
+    //                 ofsGL.finish();
+
+    //                 //get pixelData.buffer
+    //                 gl.bindTexture(gl.TEXTURE_2D,Tex);
+    //                 gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,gl.RG,gl.FLOAT,new Float32Array(pixelData.buffer));
+
+    //                 gl.bindTexture(gl.TEXTURE_2D,null);
+    //                 gl.finish();
+
+    //             }).catch((e)=>{
+    //                 console.log('ERROR::FillTextureByImage CREATEIMAGEBITMAP ERROR'+e);
+    //             })
+                    
+    //         }).catch((e)=>{
+    //             console.log('ERROR::FillTextureByImage GET IMG ERROR'+e);
+    //         })
+
+    //     }
+
+    //     if(internalformat === gl.RGBA8){
+    //         //get image in blob type
+    //         //generate bitmap
+    //         //fill texture by bitmap
+    //         axios.get(imgSrc,{responseType:'blob'})
+    //         .then((response)=>{
+    //             createImageBitmap(response.data,{imageOrientation:'flipY',
+    //                 premultiplyAlpha:'none',colorSpaceConversion:'default'})
+    //             .then((bitmap)=>{
+    //                 gl.bindTexture(gl.TEXTURE_2D,Tex);
+    //                 gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,bitmap);
+                    
+    //                 gl.bindTexture(gl.TEXTURE_2D,null);
+    //                 gl.finish();
+    //             }).catch((e)=>{
+    //                 console.log('ERROR::FillTextureByImage CREATEIMAGEBITMAP ERROR'+e);
+    //             })
+
+    //         }).catch((e)=>{
+    //             console.log('ERROR::FillTextureByImage GET IMG ERROR'+e);
+                
+    //         })
+
+
+    //     }
+
+
+    //     return Tex;
+    // }
     
 
     async getShaderObj(gl:WebGL2RenderingContext,vertexShaderSRCURL:string,fragmentShaderSRCURL:string,
@@ -469,10 +553,10 @@ export class FlowLayer implements CustomLayerInterface {
                     this.dataManager.flowFieldTextureSize[1]);
             gl.bindTexture(gl.TEXTURE_2D,null);
 
-            await this.FillTextureByImage(gl,ff_tex,gl.RG32F,gl.LINEAR,
+            await this.FillTextureByImage(gl,ff_tex,gl.RG,
                     this.dataManager.flowFieldTextureSize[0],
                     this.dataManager.flowFieldTextureSize[1],
-                    this.dataManager.flowFieldTextureSrcArray[i]);
+                    this.dataManager.flowFieldTextureSrcArray[i],'Float');
             this.flowFieldTextureArray[i] = ff_tex;
 
 
@@ -483,10 +567,10 @@ export class FlowLayer implements CustomLayerInterface {
                     this.dataManager.seedingTextureSize[1]);
             gl.bindTexture(gl.TEXTURE_2D,null);
 
-            await this.FillTextureByImage(gl,seed_tex,gl.RGBA8,gl.NEAREST,
+            await this.FillTextureByImage(gl,seed_tex,gl.RGBA,
                     this.dataManager.seedingTextureSize[0],
                     this.dataManager.seedingTextureSize[1],
-                    this.dataManager.seedingTextureSrcArray[i]);
+                    this.dataManager.seedingTextureSrcArray[i],'UNSIGNED_BYTE');
             this.seedingTextrureArray[i] = seed_tex;
 
         }
@@ -498,10 +582,10 @@ export class FlowLayer implements CustomLayerInterface {
                 this.dataManager.transformTextureSize[1]);
         gl.bindTexture(gl.TEXTURE_2D,null);
         
-        await this.FillTextureByImage(gl,this.transformTexture,gl.RG32F,gl.LINEAR,
+        await this.FillTextureByImage(gl,this.transformTexture,gl.RG,
                 this.dataManager.transformTextureSize[0],
                 this.dataManager.transformTextureSize[1],
-                this.dataManager.transformTexture2DSrc);
+                this.dataManager.transformTexture2DSrc,'Float');
 
         this.InfoBO = gl.createBuffer()!;
         gl.bindBuffer(gl.ARRAY_BUFFER,this.InfoBO);
@@ -685,7 +769,7 @@ export class FlowLayer implements CustomLayerInterface {
 
         gl.enable(gl.RASTERIZER_DISCARD);
         gl.beginTransformFeedback(gl.POINTS);
-        gl.drawArrays(gl.POINTS,0,10000);
+        gl.drawArrays(gl.POINTS,0,this.dataManager.lineNum);
         //gl.drawArrays(gl.POINTS,0,this.dataManager.maxStreamlineNum);
         gl.endTransformFeedback();
         gl.disable(gl.RASTERIZER_DISCARD);
@@ -719,6 +803,7 @@ export class FlowLayer implements CustomLayerInterface {
         //update all block
         
         this.updateOneBlock(gl);
+
         if(!this.isAllBlocksReady)  {this.map?.triggerRepaint(); return;}
 
         gl.bindVertexArray(this.RVAO);
@@ -753,9 +838,8 @@ export class FlowLayer implements CustomLayerInterface {
         gl.uniformBlockBinding(this.TrajectoryShader!.Program,blockIndex,0);
 
         
-        gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,(this.dataManager.segmentNum - 1)*2 , this.dataManager.maxStreamlineNum);
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,(this.dataManager.segmentNum - 1)*2 , this.dataManager.lineNum*100);
 
-        // gl.disable(gl.BLEND);
         gl.bindVertexArray(null);
         gl.bindTexture(gl.TEXTURE_2D,null);
 

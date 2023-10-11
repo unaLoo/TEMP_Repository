@@ -16,6 +16,7 @@ onMounted(async () => {
         useWebGL2:true,
         antialias: true,
         center:[120.980697, 31.684162],
+        attributionControl: false,
         zoom:10,
         accessToken:'pk.eyJ1IjoibnVqYWJlc2xvbyIsImEiOiJjbGp6Y3czZ2cwOXhvM3FtdDJ5ZXJmc3B4In0.5DCKDt0E2dFoiRhg3yWNRA',
     }

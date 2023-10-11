@@ -1,5 +1,4 @@
 import axios from "axios";
-import mapboxgl from "mapbox-gl";
 
 export class DataManager{
 
@@ -76,6 +75,9 @@ export class DataManager{
             this.maxParticleNum_OneBlock = this.maxBlockSize*this.maxBlockSize;
             this.maxBlockColumns = this.maxTextureSize / this.maxBlockSize;
             
+            
+
+
             
         }).catch(err=>{
             console.log("ERROR::DataManager Initialize Error" + err);

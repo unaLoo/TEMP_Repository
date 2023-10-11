@@ -24,6 +24,8 @@ export class JsonFileParser{
     async Parsing(){
         await axios.get(this.url)
         .then((response)=>{ 
+            console.log('reponse::'+response);
+            
             for(let item of response.data['flow_fields']){
                 this.flowFieldResourceArr.push(item);
             }
@@ -31,8 +33,8 @@ export class JsonFileParser{
                 this.seedingResourceArr.push(item)
             }
 
-            this.projection2DResource = response.data['projection']['2D'];
-            this.projection3DResource = response.data['projection']['3D'];
+            this.projection2DResource = response.data['projection'][0];
+            // this.projection3DResource = response.data['projection']['3D'];
 
             this.flowFieldTexSize = response.data['texture_size']['flow_field'];
             this.seedingTexSize = response.data['texture_size']['area_mask'];

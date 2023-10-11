@@ -14,7 +14,8 @@ export class FlowFieldManager {
 
 
     constructor() {
-        this.parser = new JsonFileParser('/json/flow_field_description.json');
+        // this.parser = new JsonFileParser('/json/flow_field_description.json');
+        this.parser = new JsonFileParser('/BuilderData/json/flow_field_description.json');
         this.controller = new FlowFieldController();
         this.statusCode = 0;//0为未开始状态
         this.map = null;
